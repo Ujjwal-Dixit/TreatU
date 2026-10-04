@@ -14,6 +14,9 @@ export const Colors = {
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
+    accent: '#1E9E5A',
+    accentText: '#ffffff',
+    danger: '#E0245E',
   },
   dark: {
     text: '#ffffff',
@@ -21,7 +24,19 @@ export const Colors = {
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
+    accent: '#1E9E5A',
+    accentText: '#ffffff',
+    danger: '#F0577E',
   },
+} as const;
+
+/** TreatU brand palette — sampled from the final logo (assets/brand/treatu-mark.svg). */
+export const Brand = {
+  orange: '#D7582F',
+  steam: '#F6BE61',
+  cream: '#FBF7EC',
+  /** Splash background in dark mode; keep in sync with app.json's expo-splash-screen `dark.backgroundColor`. */
+  splashDark: '#1C1411',
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;

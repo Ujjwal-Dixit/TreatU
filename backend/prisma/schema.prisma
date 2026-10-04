@@ -1,0 +1,235 @@
+// MVP schema — see /docs/architecture/data-model.md for the rationale behind
+// each modeling decision (Offer vs OfferAvailability split, Claim snapshots,
+// deferred entities, etc). Keep that doc and this file in sync.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  customer
+  restaurant_owner
+  admin
+}
+
+enum RestaurantStatus {
+  pending
+  active
+  paused
+  rejected
+}
+
+enum OfferStatus {
+  active
+  paused
+  archived
+}
+
+enum OfferAvailabilityStatus {
+  active
+  exhausted
+  expired
+}
+
+enum ClaimStatus {
+  claimed
+  redeemed
+  expired
+  cancelled
+}
+
+model User {
+  id          String    @id @default(uuid())
+  phoneNumber String    @unique @map("phone_number")
+  role        UserRole  @default(customer)
+  name        String
+  avatarUrl   String?   @map("avatar_url")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  refreshTokens     RefreshToken[]
+  ownedRestaurants  Restaurant[]   @relation("RestaurantOwner")
+  claims            Claim[]
+  favorites         Favorite[]
+
+  @@map("users")
+}
+
+/// One row per issued refresh token. Storing a hash (not the raw token) plus
+/// an explicit revokedAt means a compromised token can be killed server-side
+/// without waiting for natural expiry — see AuthService.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// One row per OTP send. codeHash + attempts enforce both expiry and a
+/// max-guess limit; phoneNumber is indexed so /auth/otp/request can be rate
+/// limited per number (see OtpService).
+model OtpRequest {
+  id          String    @id @default(uuid())
+  phoneNumber String    @map("phone_number")
+  codeHash    String    @map("code_hash")
+  expiresAt   DateTime  @map("expires_at")
+  consumedAt  DateTime? @map("consumed_at")
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([phoneNumber])
+  @@map("otp_requests")
+}
+
+model Restaurant {
+  id             String           @id @default(uuid())
+  ownerUserId    String?          @map("owner_user_id")
+  owner          User?            @relation("RestaurantOwner", fields: [ownerUserId], references: [id])
+  name           String
+  description    String           @default("")
+  cuisines       String[]
+  priceTier      Int              @map("price_tier")
+  addressLine    String           @map("address_line")
+  city           String
+  /// Plain lat/lng, not a PostGIS geography column — MVP has no GPS radius
+  /// search (confirmed decision), only city-scoped distance display sorted
+  /// via haversine in application code. Migrate to PostGIS geography(Point)
+  /// + spatial index when true "near me" radius search is actually built
+  /// (multi-city / V1), per data-model.md.
+  latitude       Float
+  longitude      Float
+  /// IANA zone, e.g. "Asia/Kolkata". Required even with one city/timezone
+  /// today — the backend is the sole source of truth for offer timing and
+  /// this is expensive to retrofit later, free to add now.
+  timezone       String
+  /// [{ dayOfWeek: 1-7, openTime: "HH:mm", closeTime: "HH:mm" }]
+  operatingHours Json             @map("operating_hours")
+  coverImageUrl  String           @map("cover_image_url")
+  galleryUrls    String[]         @map("gallery_urls")
+  /// Seeded manually by the founder at onboarding, NOT computed from an
+  /// in-app review system (Review entity is deferred to V1). Intentional
+  /// MVP shortcut — flagged per data-model.md.
+  ratingAvg      Decimal          @default(0) @db.Decimal(2, 1) @map("rating_avg")
+  ratingCount    Int              @default(0) @map("rating_count")
+  status         RestaurantStatus @default(pending)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  offers    Offer[]
+  claims    Claim[]
+  favorites Favorite[]
+  features  RestaurantFeature[]
+
+  @@index([city, status])
+  @@map("restaurants")
+}
+
+/// Controls which home-feed section(s) a restaurant appears in and its
+/// order within that section. Admin/founder-set at onboarding time (hand-
+/// curated MVP, no ranking algorithm) — see api-contracts.md GET /home-feed.
+model RestaurantFeature {
+  id           String     @id @default(uuid())
+  restaurantId String     @map("restaurant_id")
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sectionKey   String     @map("section_key") // "highestOffer" | "openNearYou" | "topPicks"
+  rank         Int
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([restaurantId, sectionKey])
+  @@index([sectionKey, rank])
+  @@map("restaurant_features")
+}
+
+/// A recurring discount rule. NOT the thing capacity is tracked against —
+/// see OfferAvailability. Multiple Offers can be active on the same
+/// restaurant/day (the screenshots show two time-slots in one day), so
+/// there's no uniqueness constraint on (restaurantId, dayOfWeek).
+model Offer {
+  id                 String      @id @default(uuid())
+  restaurantId       String      @map("restaurant_id")
+  restaurant         Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  discountPercentage Int         @map("discount_percentage")
+  /// ISO weekday numbers, 1 = Monday .. 7 = Sunday
+  daysOfWeek         Int[]       @map("days_of_week")
+  /// Restaurant-local time, "HH:mm", zero-padded so string comparison works
+  startTime          String      @map("start_time")
+  endTime            String      @map("end_time")
+  minSpendPaise      Int?        @map("min_spend_paise")
+  capacityPerDay     Int         @map("capacity_per_day")
+  status             OfferStatus @default(active)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  availabilities OfferAvailability[]
+
+  @@index([restaurantId, status])
+  @@map("offers")
+}
+
+/// One calendar day's instance of an Offer rule. capacityTotal is copied
+/// from Offer.capacityPerDay at creation time so editing the rule later
+/// never rewrites an already-in-progress day's capacity. Rows are created
+/// lazily (get-or-create) the first time a day's occurrence is needed,
+/// not by a standing cron — see OffersService.
+model OfferAvailability {
+  id              String                   @id @default(uuid())
+  offerId         String                   @map("offer_id")
+  offer           Offer                    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  date            DateTime                 @db.Date
+  capacityTotal   Int                      @map("capacity_total")
+  capacityClaimed Int                      @default(0) @map("capacity_claimed")
+  status          OfferAvailabilityStatus  @default(active)
+  createdAt       DateTime                 @default(now()) @map("created_at")
+
+  claims Claim[]
+
+  @@unique([offerId, date])
+  @@map("offer_availabilities")
+}
+
+/// A customer's redemption of one day's offer occurrence. Discount and min
+/// spend are snapshotted at claim time so editing the parent Offer later
+/// can't retroactively change what a customer already redeemed.
+model Claim {
+  id                          String      @id @default(uuid())
+  userId                      String      @map("user_id")
+  user                        User        @relation(fields: [userId], references: [id])
+  offerAvailabilityId         String      @map("offer_availability_id")
+  offerAvailability           OfferAvailability @relation(fields: [offerAvailabilityId], references: [id])
+  restaurantId                String      @map("restaurant_id")
+  restaurant                  Restaurant  @relation(fields: [restaurantId], references: [id])
+  redemptionCode               String      @unique @map("redemption_code")
+  discountPercentageSnapshot   Int         @map("discount_percentage_snapshot")
+  minSpendPaiseSnapshot        Int?        @map("min_spend_paise_snapshot")
+  status                       ClaimStatus @default(claimed)
+  claimedAt                    DateTime    @default(now()) @map("claimed_at")
+  redeemedAt                   DateTime?   @map("redeemed_at")
+  expiresAt                    DateTime    @map("expires_at")
+
+  @@index([userId, status])
+  @@index([restaurantId, claimedAt])
+  @@map("claims")
+}
+
+model Favorite {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([userId, restaurantId])
+  @@map("favorites")
+}

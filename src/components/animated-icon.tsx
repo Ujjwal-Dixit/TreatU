@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, useColorScheme, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+
+import { Brand } from '@/constants/theme';
 
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
@@ -11,6 +13,8 @@ const DURATION = 600;
 export function AnimatedSplashOverlay() {
   const [animate, setAnimate] = useState(false);
   const [visible, setVisible] = useState(true);
+  // Must match the native splash in app.json exactly, so the handoff is invisible.
+  const backgroundColor = useColorScheme() === 'dark' ? Brand.splashDark : Brand.cream;
 
   if (!visible) return null;
 
@@ -33,7 +37,7 @@ export function AnimatedSplashOverlay() {
     },
   });
 
-  const image = <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />;
+  const image = <Image style={styles.splashImage} source={require('@/assets/images/brand-mark.png')} />;
 
   return animate ? (
     <Animated.View
@@ -43,7 +47,7 @@ export function AnimatedSplashOverlay() {
           scheduleOnRN(setVisible, false);
         }
       })}
-      style={styles.splashOverlay}>
+      style={[styles.splashOverlay, { backgroundColor }]}>
       {image}
     </Animated.View>
   ) : (
@@ -53,7 +57,7 @@ export function AnimatedSplashOverlay() {
           setAnimate(true);
         });
       }}
-      style={styles.splashOverlay}>
+      style={[styles.splashOverlay, { backgroundColor }]}>
       {image}
     </View>
   );
@@ -138,9 +142,13 @@ const styles = StyleSheet.create({
     height: 128,
     position: 'absolute',
   },
+  // Same size as `imageWidth` in the expo-splash-screen config.
+  splashImage: {
+    width: 120,
+    height: 120,
+  },
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#208AEF',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,

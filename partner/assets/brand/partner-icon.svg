@@ -1,0 +1,13 @@
+<!-- TreatU mark on the partner app's green (customer app: orange). Full-bleed:
+     iOS and Android apply their own corner masks. Render: see README. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 25 780 780" width="1024" height="1024">
+  <rect x="10" y="25" width="780" height="780" fill="#0B5A30"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M178 275 V420 A225 190 0 0 0 628 420 V275" stroke="#FCF8ED" stroke-width="120"/>
+    <path d="M320 192 c-19 25 -19 50 0 75 s19 50 0 75" stroke="#F6BE61" stroke-width="34"/>
+    <path d="M403 150 c-21 32 -21 64 0 96 s21 64 0 96" stroke="#F6BE61" stroke-width="34"/>
+    <path d="M486 192 c-19 25 -19 50 0 75 s19 50 0 75" stroke="#F6BE61" stroke-width="34"/>
+    <path d="M324 432 H482" stroke="#FCF8ED" stroke-width="52"/>
+    <path d="M403 436 V508" stroke="#FCF8ED" stroke-width="57"/>
+  </g>
+</svg>

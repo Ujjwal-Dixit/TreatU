@@ -8,13 +8,16 @@
     "scheme": "treatupartner",
     "userInterfaceStyle": "light",
     "ios": {
-      "bundleIdentifier": "com.treatu.partner"
+      "bundleIdentifier": "com.treatu.partner",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.treatu.partner",
       "adaptiveIcon": {
-        "backgroundColor": "#0B5D32",
-        "foregroundImage": "./assets/images/icon.png"
+        "backgroundColor": "#0B5A30",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       }
     },
     "plugins": [

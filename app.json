@@ -1,13 +1,20 @@
 {
   "expo": {
     "name": "TreatU",
-    "slug": "MyApp",
+    "slug": "treatu",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "treatu",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.treatu.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
     "android": {
+      "package": "com.treatu.app",
       "adaptiveIcon": {
         "backgroundColor": "#D7582F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

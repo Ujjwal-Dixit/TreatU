@@ -24,6 +24,39 @@ const baseEnvSchema = z.object({
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
   TWILIO_FROM_NUMBER: z.string().optional(),
+  // Test-only login: comma-separated E.164 numbers that log in with the
+  // fixed OTP_TEST_CODE instead of a sent SMS, so testers can sign in on a
+  // hosted test backend where nobody can read the console sender's output.
+  // Refused when NODE_ENV=production (see below).
+  OTP_TEST_NUMBERS: z
+    .string()
+    .optional()
+    .transform((value) =>
+      (value ?? '')
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z.array(
+        z
+          .string()
+          .regex(
+            /^\+\d{8,15}$/,
+            'OTP_TEST_NUMBERS must be E.164, e.g. +919800000000',
+          ),
+      ),
+    ),
+  OTP_TEST_CODE: z
+    .string()
+    .regex(/^\d{6}$/, 'OTP_TEST_CODE must be 6 digits')
+    .optional(),
+  // How many reverse proxies sit in front of the app (Render/Railway: 1).
+  // Needed so rate limits key on the real client IP — behind a proxy every
+  // request otherwise shares the proxy's IP, and the 3/min OTP limit would
+  // apply to all users combined. 0 locally: trusting X-Forwarded-For with
+  // no proxy in front would let a client spoof its IP past rate limits.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
 });
 
 const envSchema = baseEnvSchema.superRefine((config, ctx) => {
@@ -55,6 +88,26 @@ const envSchema = baseEnvSchema.superRefine((config, ctx) => {
       message:
         'OTP_SENDER must not be "console" when NODE_ENV=production — configure a real SMS provider.',
     });
+  }
+
+  if (config.OTP_TEST_NUMBERS.length > 0) {
+    // A fixed OTP is a known password for those accounts — fine for a
+    // test server full of demo data, never for real users.
+    if (config.NODE_ENV === 'production') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['OTP_TEST_NUMBERS'],
+        message:
+          'OTP_TEST_NUMBERS must not be set when NODE_ENV=production — fixed OTPs are for test servers only.',
+      });
+    }
+    if (!config.OTP_TEST_CODE) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['OTP_TEST_CODE'],
+        message: 'OTP_TEST_CODE is required when OTP_TEST_NUMBERS is set',
+      });
+    }
   }
 });
 

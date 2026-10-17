@@ -87,6 +87,41 @@ as a guardrail against shipping the mock. Swap the `OTP_SENDER` provider in
 `auth.module.ts` for a real implementation before anyone but you tries to
 log in.
 
+**Test servers:** set `OTP_TEST_NUMBERS` (comma-separated E.164) and
+`OTP_TEST_CODE` and those numbers log in with that fixed code, no SMS. This
+is how testers sign in to a hosted test backend, where nobody can read the
+console sender's output. Env validation refuses it when
+`NODE_ENV=production`. Add a tester = add their number and restart.
+
+## Deploying a test server
+
+Any Node host with managed Postgres works (Render, Railway, Fly). Settings:
+
+| setting | value |
+|---|---|
+| Root directory | `backend` |
+| Build command | `npm ci && npx prisma generate && npm run build` |
+| Start command | `npm run start:deploy` (applies pending migrations, then starts) |
+| Health check path | `/health` |
+
+Environment variables (see `.env.example`):
+
+| variable | test-server value |
+|---|---|
+| `NODE_ENV` | `staging` — *not* `production`, which (correctly) refuses the test OTP numbers and the console sender |
+| `DATABASE_URL` | the host's Postgres connection string |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | two different values from `openssl rand -base64 48` |
+| `OTP_TEST_NUMBERS` | `+919800000000,+919800000001` plus any tester numbers |
+| `OTP_TEST_CODE` | any 6 digits — share with testers |
+| `TRUST_PROXY_HOPS` | `1` — the host's proxy; without it every tester shares one rate-limit bucket |
+
+`PORT` is provided by the host. Load the demo data once, from your machine,
+pointed at the hosted database's *external* connection string:
+
+```bash
+DATABASE_URL="<external connection string>" npm run prisma:seed
+```
+
 ## Known gaps / things to revisit
 
 - **Launch city is a placeholder.** `src/config/city.config.ts` hardcodes
@@ -120,7 +155,8 @@ log in.
 | command | what |
 |---|---|
 | `npm run start:dev` | dev server, watch mode |
-| `npm run build` / `start:prod` | production build/run |
+| `npm run build` / `start:prod` | production build/run (output is `dist/src/main.js` — `prisma/` is compiled too, which shifts the root) |
+| `npm run start:deploy` | `prisma migrate deploy`, then `start:prod` — the hosted start command |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint (`--fix`) |
 | `npm test` / `test:watch` / `test:cov` | unit tests |

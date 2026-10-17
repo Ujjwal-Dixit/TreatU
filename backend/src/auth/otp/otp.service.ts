@@ -1,4 +1,4 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { hashSecret, verifySecret } from '../../common/crypto/hash.util';
@@ -9,14 +9,28 @@ import type { EnvConfig } from '../../config/env.validation';
 
 @Injectable()
 export class OtpService {
+  private readonly logger = new Logger(OtpService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(OTP_SENDER) private readonly sender: OtpSender,
     private readonly config: ConfigService<EnvConfig, true>,
   ) {}
 
+  private testCodeFor(phoneNumber: string): string | undefined {
+    const testNumbers = this.config.get('OTP_TEST_NUMBERS', { infer: true });
+    return testNumbers.includes(phoneNumber)
+      ? this.config.get('OTP_TEST_CODE', { infer: true })
+      : undefined;
+  }
+
   async requestOtp(phoneNumber: string): Promise<void> {
-    const code = generateOtpCode();
+    // Allowlisted test numbers (test servers only — env validation refuses
+    // them in production) get the fixed OTP_TEST_CODE and no SMS. The
+    // code still goes through the normal hashed row below, so expiry,
+    // attempt limits and rate limiting all behave exactly as for real users.
+    const testCode = this.testCodeFor(phoneNumber);
+    const code = testCode ?? generateOtpCode();
     const codeHash = await hashSecret(code);
     const ttlMinutes = this.config.get('OTP_TTL_MINUTES', { infer: true });
 
@@ -27,6 +41,11 @@ export class OtpService {
         expiresAt: new Date(Date.now() + ttlMinutes * 60_000),
       },
     });
+
+    if (testCode) {
+      this.logger.log(`Test number ${phoneNumber}: fixed OTP, no SMS sent`);
+      return;
+    }
 
     try {
       await this.sender.send(phoneNumber, code);

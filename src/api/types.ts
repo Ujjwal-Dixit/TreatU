@@ -28,6 +28,8 @@ export interface OfferCardDto {
   offerAvailabilityId: string;
   discountPercentage: number;
   conditionLabel: string;
+  /** Owner-written copy from the partner app; may be empty. */
+  description: string;
   minSpendPaise: number | null;
   seatsLeft: number;
   status: OfferStatus;
@@ -80,12 +82,27 @@ export interface RestaurantListPageDto {
 
 export type ClaimStatus = 'claimed' | 'redeemed' | 'expired' | 'cancelled';
 
+export interface ClaimRestaurantDto {
+  id: string;
+  name: string;
+  coverImageUrl: string;
+  cuisines: string[];
+  addressLine: string;
+  latitude: number;
+  longitude: number;
+  distanceKm: number;
+}
+
 export interface ClaimDto {
   id: string;
-  restaurant: { id: string; name: string; coverImageUrl: string };
+  restaurant: ClaimRestaurantDto;
   redemptionCode: string;
   discountPercentage: number;
   minSpendPaise: number | null;
+  /** Recorded by restaurant staff at redemption; null if they skipped it. */
+  billAmountPaise: number | null;
+  /** Actual discount received — known only when the bill was recorded. */
+  savedPaise: number | null;
   status: ClaimStatus;
   claimedAt: string;
   expiresAt: string;

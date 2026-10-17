@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import * as Location from 'expo-location';
 import { LAUNCH_CITY_NAME } from '@/config/launch-city';
+import { setDistanceOrigin } from '@/location/distance-origin';
 
 export type UserLocationStatus =
   | 'idle'
@@ -34,6 +35,7 @@ export function useUserLocation(): UseUserLocationResult {
       }
 
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      setDistanceOrigin(position.coords.latitude, position.coords.longitude);
       const [place] = await Location.reverseGeocodeAsync({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,

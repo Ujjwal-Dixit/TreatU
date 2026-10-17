@@ -6,6 +6,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider } from '@/auth/auth-context';
 import { queryClient } from '@/lib/query-client';
+import { RealtimeSync } from '@/realtime/realtime-sync';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -16,11 +17,12 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <RealtimeSync />
           <AnimatedSplashOverlay />
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="restaurant/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="claim/[id]" options={{ presentation: 'modal', title: 'Your booking' }} />
+            <Stack.Screen name="claim/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="auth/phone" options={{ presentation: 'modal', title: 'Log in' }} />
             <Stack.Screen name="auth/verify" options={{ presentation: 'modal', title: 'Verify' }} />
           </Stack>

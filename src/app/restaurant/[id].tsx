@@ -43,7 +43,8 @@ export default function RestaurantDetailScreen() {
             text: 'Claim offer',
             onPress: () => {
               claimOffer.mutate(offer.offerAvailabilityId, {
-                onSuccess: (claim) => router.push(`/claim/${claim.id}`),
+                onSuccess: (claim) =>
+                  router.push({ pathname: '/claim/[id]', params: { id: claim.id, activated: '1' } }),
                 onError: (error) => {
                   Alert.alert('Couldn’t claim this offer', isApiError(error) ? error.message : 'Please try again.');
                 },
@@ -138,11 +139,19 @@ export default function RestaurantDetailScreen() {
                     <ThemedText type="small" themeColor="textSecondary">
                       {offer.conditionLabel}
                     </ThemedText>
+                    {offer.description ? <ThemedText type="small">{offer.description}</ThemedText> : null}
                     <View style={[styles.seatsPill, { backgroundColor: theme.backgroundSelected }]}>
-                      <ThemedText type="small">{offer.seatsLeft} left</ThemedText>
+                      <ThemedText type="small" themeColor={offer.status === 'exhausted' ? 'danger' : undefined}>
+                        {offer.status === 'exhausted' ? 'Sold out for now' : `${offer.seatsLeft} left`}
+                      </ThemedText>
                     </View>
                   </View>
-                  <PrimaryButton label="Redeem" onPress={() => handleRedeem(offer)} style={styles.redeemButton} />
+                  <PrimaryButton
+                    label={offer.status === 'exhausted' ? 'Sold out' : 'Redeem'}
+                    onPress={() => handleRedeem(offer)}
+                    disabled={offer.status === 'exhausted'}
+                    style={styles.redeemButton}
+                  />
                 </ThemedView>
               ))}
             </View>

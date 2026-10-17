@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addFavorite, listFavorites, removeFavorite } from '@/api/endpoints/restaurants';
+import { useDistanceOrigin } from '@/location/distance-origin';
 
 export function useFavorites() {
-  return useQuery({ queryKey: ['favorites'], queryFn: listFavorites });
+  const origin = useDistanceOrigin();
+  return useQuery({ queryKey: ['favorites', origin], queryFn: () => listFavorites(origin) });
 }
 
 export function useToggleFavorite() {

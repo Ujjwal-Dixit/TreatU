@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "TreatU Partner",
+    "slug": "treatu-partner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "treatupartner",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.treatu.partner"
+    },
+    "android": {
+      "package": "com.treatu.partner",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B5D32",
+        "foregroundImage": "./assets/images/icon.png"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120
+        }
+      ],
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

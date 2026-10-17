@@ -15,7 +15,12 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtAccessPayload } from '../auth/strategies/jwt-access.strategy';
 import { ClaimsService } from './claims.service';
 import { RedeemClaimDto } from './dto/redeem-claim.dto';
-import { toClaimDto, type ClaimDto } from './mappers/claim.mapper';
+import {
+  toClaimDto,
+  toOwnerClaimDto,
+  type ClaimDto,
+  type OwnerClaimDto,
+} from './mappers/claim.mapper';
 
 @Controller('restaurant-owner')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,7 +39,15 @@ export class ClaimsOwnerController {
       offerId,
       date,
     );
-    return claims.map(toClaimDto);
+    return claims.map((claim) => toClaimDto(claim));
+  }
+
+  @Get('claims/today')
+  async listToday(
+    @CurrentUser() user: JwtAccessPayload,
+  ): Promise<OwnerClaimDto[]> {
+    const claims = await this.claimsService.listForOwnerToday(user.sub);
+    return claims.map(toOwnerClaimDto);
   }
 
   @Post('claims/redeem')
@@ -42,7 +55,11 @@ export class ClaimsOwnerController {
     @CurrentUser() user: JwtAccessPayload,
     @Body() dto: RedeemClaimDto,
   ): Promise<ClaimDto> {
-    const claim = await this.claimsService.redeemByCode(user.sub, dto.code);
+    const claim = await this.claimsService.redeemByCode(
+      user.sub,
+      dto.code,
+      dto.billAmountPaise,
+    );
     return toClaimDto(claim);
   }
 }

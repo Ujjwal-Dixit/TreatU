@@ -1,13 +1,18 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { OffersService } from './offers.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 describe('OffersService.buildConditionLabel', () => {
   let service: OffersService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OffersService, { provide: PrismaService, useValue: {} }],
+      providers: [
+        OffersService,
+        { provide: PrismaService, useValue: {} },
+        { provide: RealtimeService, useValue: { publish: jest.fn() } },
+      ],
     }).compile();
     service = module.get(OffersService);
   });

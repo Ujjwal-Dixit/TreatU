@@ -23,6 +23,8 @@ import {
   type RestaurantListPage,
 } from './restaurants.service';
 import { ListRestaurantsQueryDto } from './dto/list-restaurants.query.dto';
+import { DistanceOriginQueryDto } from '../common/geo/distance-origin.dto';
+import { resolveDistanceOrigin } from '../common/geo/distance-origin';
 import type {
   RestaurantCardDto,
   RestaurantDetailDto,
@@ -35,9 +37,13 @@ export class RestaurantsController {
   @Get('home-feed')
   @UseGuards(OptionalJwtAuthGuard)
   getHomeFeed(
+    @Query() origin: DistanceOriginQueryDto,
     @CurrentUserOrNull() user?: JwtAccessPayload,
   ): Promise<HomeFeedDto> {
-    return this.restaurantsService.getHomeFeed(user?.sub);
+    return this.restaurantsService.getHomeFeed(
+      resolveDistanceOrigin(origin),
+      user?.sub,
+    );
   }
 
   @Get('restaurants')
@@ -46,16 +52,25 @@ export class RestaurantsController {
     @Query() query: ListRestaurantsQueryDto,
     @CurrentUserOrNull() user?: JwtAccessPayload,
   ): Promise<RestaurantListPage> {
-    return this.restaurantsService.listRestaurants(query, user?.sub);
+    return this.restaurantsService.listRestaurants(
+      query,
+      resolveDistanceOrigin(query),
+      user?.sub,
+    );
   }
 
   @Get('restaurants/:id')
   @UseGuards(OptionalJwtAuthGuard)
   detail(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query() origin: DistanceOriginQueryDto,
     @CurrentUserOrNull() user?: JwtAccessPayload,
   ): Promise<RestaurantDetailDto> {
-    return this.restaurantsService.getRestaurantDetail(id, user?.sub);
+    return this.restaurantsService.getRestaurantDetail(
+      id,
+      resolveDistanceOrigin(origin),
+      user?.sub,
+    );
   }
 
   @Post('restaurants/:id/favorite')
@@ -82,7 +97,11 @@ export class RestaurantsController {
   @UseGuards(JwtAuthGuard)
   listFavorites(
     @CurrentUser() user: JwtAccessPayload,
+    @Query() origin: DistanceOriginQueryDto,
   ): Promise<RestaurantCardDto[]> {
-    return this.restaurantsService.listFavorites(user.sub);
+    return this.restaurantsService.listFavorites(
+      user.sub,
+      resolveDistanceOrigin(origin),
+    );
   }
 }

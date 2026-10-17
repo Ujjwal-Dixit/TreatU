@@ -11,6 +11,7 @@ import {
   type HomeFeedSectionKey,
 } from '../config/home-feed-sections.config';
 import { LAUNCH_CITY } from '../config/city.config';
+import type { Coordinates } from '../common/geo/haversine.util';
 import {
   OffersService,
   type OccurrenceWithOffer,
@@ -49,7 +50,10 @@ export class RestaurantsService {
     private readonly offersService: OffersService,
   ) {}
 
-  async getHomeFeed(currentUserId?: string): Promise<HomeFeedDto> {
+  async getHomeFeed(
+    origin: Coordinates,
+    currentUserId?: string,
+  ): Promise<HomeFeedDto> {
     const favoritedIds = await this.getFavoritedIdSet(currentUserId);
 
     const sections = await Promise.all(
@@ -61,7 +65,9 @@ export class RestaurantsService {
           include: { restaurant: true },
         });
         const restaurants = await Promise.all(
-          features.map((f) => this.buildCard(f.restaurant, favoritedIds)),
+          features.map((f) =>
+            this.buildCard(f.restaurant, favoritedIds, origin),
+          ),
         );
         return { key, title: HOME_FEED_SECTION_TITLES[key], restaurants };
       }),
@@ -72,6 +78,7 @@ export class RestaurantsService {
 
   async listRestaurants(
     query: ListRestaurantsQueryDto,
+    origin: Coordinates,
     currentUserId?: string,
   ): Promise<RestaurantListPage> {
     const limit = query.limit ?? 20;
@@ -105,7 +112,7 @@ export class RestaurantsService {
       const page = matched.slice(startIndex, startIndex + limit);
       const hasNext = startIndex + limit < matched.length;
       const items = await Promise.all(
-        page.map((r) => this.buildCard(r, favoritedIds)),
+        page.map((r) => this.buildCard(r, favoritedIds, origin)),
       );
       const lastItem = page.at(-1);
       return { items, nextCursor: hasNext && lastItem ? lastItem.id : null };
@@ -121,7 +128,7 @@ export class RestaurantsService {
     const hasNext = restaurants.length > limit;
     const page = hasNext ? restaurants.slice(0, limit) : restaurants;
     const items = await Promise.all(
-      page.map((r) => this.buildCard(r, favoritedIds)),
+      page.map((r) => this.buildCard(r, favoritedIds, origin)),
     );
     const lastItem = page.at(-1);
     return { items, nextCursor: hasNext && lastItem ? lastItem.id : null };
@@ -129,6 +136,7 @@ export class RestaurantsService {
 
   async getRestaurantDetail(
     id: string,
+    origin: Coordinates,
     currentUserId?: string,
   ): Promise<RestaurantDetailDto> {
     const restaurant = await this.prisma.restaurant.findFirst({
@@ -142,12 +150,18 @@ export class RestaurantsService {
       );
     }
 
-    const { active, past } = await this.offersService.getTodayOccurrences(
-      restaurant.id,
-      restaurant.timezone,
-    );
+    const { active, soldOut, past } =
+      await this.offersService.getTodayOccurrences(
+        restaurant.id,
+        restaurant.timezone,
+      );
     const { time } = getLocalDateTimeParts(restaurant.timezone);
-    const activeOffers = active.map((occ) => this.toCard(occ, time));
+    // Sold-out offers come after the claimable ones; toOfferCardDto marks
+    // them `exhausted` from seatsLeft === 0. Cards (bestActiveOffer) still
+    // only ever advertise a claimable offer — see buildCard.
+    const activeOffers = [...active, ...soldOut].map((occ) =>
+      this.toCard(occ, time),
+    );
     const pastOffersToday = past.map((occ) =>
       this.toCard(occ, time, 'expired'),
     );
@@ -157,6 +171,7 @@ export class RestaurantsService {
       isFavorited: favoritedIds.has(restaurant.id),
       activeOffers,
       pastOffersToday,
+      origin,
     });
   }
 
@@ -182,7 +197,10 @@ export class RestaurantsService {
     await this.prisma.favorite.deleteMany({ where: { userId, restaurantId } });
   }
 
-  async listFavorites(userId: string): Promise<RestaurantCardDto[]> {
+  async listFavorites(
+    userId: string,
+    origin: Coordinates,
+  ): Promise<RestaurantCardDto[]> {
     const favorites = await this.prisma.favorite.findMany({
       where: { userId },
       include: { restaurant: true },
@@ -190,7 +208,7 @@ export class RestaurantsService {
     });
     const favoritedIds = new Set(favorites.map((f) => f.restaurantId));
     return Promise.all(
-      favorites.map((f) => this.buildCard(f.restaurant, favoritedIds)),
+      favorites.map((f) => this.buildCard(f.restaurant, favoritedIds, origin)),
     );
   }
 
@@ -276,6 +294,7 @@ export class RestaurantsService {
   private async buildCard(
     restaurant: Restaurant,
     favoritedIds: Set<string>,
+    origin: Coordinates,
   ): Promise<RestaurantCardDto> {
     const { active } = await this.offersService.getTodayOccurrences(
       restaurant.id,
@@ -294,6 +313,7 @@ export class RestaurantsService {
     return toRestaurantCardDto(restaurant, {
       isFavorited: favoritedIds.has(restaurant.id),
       bestActiveOffer: best ? this.toCard(best, time) : null,
+      origin,
     });
   }
 }

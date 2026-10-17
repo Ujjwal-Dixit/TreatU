@@ -1,6 +1,8 @@
 import type { Restaurant } from '@prisma/client';
-import { haversineDistanceKm } from '../../common/geo/haversine.util';
-import { LAUNCH_CITY } from '../../config/city.config';
+import {
+  haversineDistanceKm,
+  type Coordinates,
+} from '../../common/geo/haversine.util';
 import { computeOpenStatus } from '../../common/time/operating-hours.util';
 import { operatingHoursSchema } from '../../common/schemas/operating-hours.schema';
 import type { OfferCardDto } from '../../offers/mappers/offer.mapper';
@@ -13,8 +15,8 @@ interface BaseRestaurantFields {
   priceTier: number;
   ratingAvg: number;
   ratingCount: number;
-  /** From the fixed city-center point, not the customer's own location —
-   * MVP has no GPS input. See LAUNCH_CITY / haversine.util.ts. */
+  /** From the customer's location when the app sent one, else the city
+   * centre — see resolveDistanceOrigin. */
   distanceKm: number;
   isFavorited: boolean;
 }
@@ -36,8 +38,9 @@ export interface RestaurantDetailDto extends BaseRestaurantFields {
 function toBaseFields(
   restaurant: Restaurant,
   isFavorited: boolean,
+  origin: Coordinates,
 ): BaseRestaurantFields {
-  const distanceKm = haversineDistanceKm(LAUNCH_CITY.center, {
+  const distanceKm = haversineDistanceKm(origin, {
     latitude: restaurant.latitude,
     longitude: restaurant.longitude,
   });
@@ -57,10 +60,14 @@ function toBaseFields(
 
 export function toRestaurantCardDto(
   restaurant: Restaurant,
-  opts: { isFavorited: boolean; bestActiveOffer: OfferCardDto | null },
+  opts: {
+    isFavorited: boolean;
+    bestActiveOffer: OfferCardDto | null;
+    origin: Coordinates;
+  },
 ): RestaurantCardDto {
   return {
-    ...toBaseFields(restaurant, opts.isFavorited),
+    ...toBaseFields(restaurant, opts.isFavorited, opts.origin),
     bestActiveOffer: opts.bestActiveOffer,
   };
 }
@@ -71,6 +78,7 @@ export function toRestaurantDetailDto(
     isFavorited: boolean;
     activeOffers: OfferCardDto[];
     pastOffersToday: OfferCardDto[];
+    origin: Coordinates;
   },
 ): RestaurantDetailDto {
   const parsedHours = operatingHoursSchema.safeParse(restaurant.operatingHours);
@@ -80,7 +88,7 @@ export function toRestaurantDetailDto(
   );
 
   return {
-    ...toBaseFields(restaurant, opts.isFavorited),
+    ...toBaseFields(restaurant, opts.isFavorited, opts.origin),
     description: restaurant.description,
     addressLine: restaurant.addressLine,
     isOpen: openStatus.isOpen,

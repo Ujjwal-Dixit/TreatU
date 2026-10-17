@@ -15,6 +15,8 @@ import type { JwtAccessPayload } from '../auth/strategies/jwt-access.strategy';
 import { ClaimsService } from './claims.service';
 import { ListClaimsQueryDto } from './dto/list-claims.query.dto';
 import { toClaimDto, type ClaimDto } from './mappers/claim.mapper';
+import { DistanceOriginQueryDto } from '../common/geo/distance-origin.dto';
+import { resolveDistanceOrigin } from '../common/geo/distance-origin';
 
 /** Customer-facing: my bookings/offers (Bookings tab, Profile > My
  * Bookings/My Offers). Claiming itself lives in
@@ -31,16 +33,17 @@ export class ClaimsController {
     @Query() query: ListClaimsQueryDto,
   ): Promise<ClaimDto[]> {
     const claims = await this.claimsService.listForUser(user.sub, query.status);
-    return claims.map(toClaimDto);
+    return claims.map((claim) => toClaimDto(claim));
   }
 
   @Get(':id')
   async get(
     @CurrentUser() user: JwtAccessPayload,
     @Param('id', ParseUUIDPipe) id: string,
+    @Query() origin: DistanceOriginQueryDto,
   ): Promise<ClaimDto> {
     const claim = await this.claimsService.getForUser(user.sub, id);
-    return toClaimDto(claim);
+    return toClaimDto(claim, resolveDistanceOrigin(origin));
   }
 
   @Post(':id/cancel')

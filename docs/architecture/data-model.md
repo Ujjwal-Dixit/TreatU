@@ -123,8 +123,10 @@ to implement the auth rules from api-contracts.md:
 | start_time | time | restaurant-local time, e.g. `15:00` |
 | end_time | time | restaurant-local time, e.g. `17:00` |
 | min_spend | integer, nullable | smallest currency unit (paise), avoids float rounding issues |
-| capacity_per_day | integer | how many redemptions this rule allows per calendar occurrence |
-| status | enum(active, paused, archived) | restaurant-controlled pause/resume |
+| capacity_per_day | integer | how many redemptions this rule allows per calendar occurrence; set by the partner app's "Seats per Day" field (default 20) |
+| description | text, default '' | optional customer-facing copy, max 100 chars |
+| valid_from, valid_until | date, nullable | restaurant-local inclusive bounds. Both null = standing weekly rule on `days_of_week`. Partner app "Today Only" sets both to today; "Date Range" sets each (with `days_of_week` = all 7) |
+| status | enum(active, paused, archived) | restaurant-controlled pause/resume; `archived` = ended by the owner, kept for claim history |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 
@@ -138,7 +140,7 @@ required" flag.
 | id | uuid pk | |
 | offer_id | uuid fk -> Offer | |
 | date | date | the restaurant-local calendar date this occurrence covers |
-| capacity_total | integer | copied from `Offer.capacity_per_day` at creation time — protects history if the rule is edited later |
+| capacity_total | integer | copied from `Offer.capacity_per_day` at creation time — protects history if the rule is edited later. Exception: editing the offer's capacity also updates today's and future rows (never below `capacity_claimed`), so a mid-day change takes effect immediately; past days are untouched |
 | capacity_claimed | integer, default 0 | incremented atomically on claim |
 | status | enum(active, exhausted, expired) | server-derived: `exhausted` when claimed >= total, `expired` once end_time has passed for `date` |
 | created_at | timestamptz | |
@@ -160,7 +162,8 @@ than requiring a standing cron job for MVP.
 | status | enum(claimed, redeemed, expired, cancelled) | |
 | claimed_at | timestamptz | |
 | redeemed_at | timestamptz, nullable | |
-| expires_at | timestamptz | end of that day's offer window |
+| bill_amount_paise | integer, nullable | entered by staff at redemption (optional). The only real spend figure the platform ever sees — customers pay the restaurant directly. Drives "Total saved"; without it that falls back to `min_spend_snapshot` as a floor |
+| expires_at | timestamptz | end of that day's offer window. Claims past this are flipped to `expired` lazily, on any read of them — there is no background job |
 
 Indexes: `(user_id, status)` for the Bookings/Profile views; `(restaurant_id,
 claimed_at)` for restaurant-side claim views.

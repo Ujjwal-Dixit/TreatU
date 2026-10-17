@@ -5,6 +5,8 @@ export interface OfferCardDto {
   offerAvailabilityId: string;
   discountPercentage: number;
   conditionLabel: string;
+  /** Owner-written copy, may be empty. */
+  description: string;
   minSpendPaise: number | null;
   seatsLeft: number;
   status: 'active' | 'exhausted' | 'expired';
@@ -27,6 +29,7 @@ export function toOfferCardDto(
     offerAvailabilityId: availability.id,
     discountPercentage: offer.discountPercentage,
     conditionLabel: offersService.buildConditionLabel(offer, currentTime),
+    description: offer.description,
     minSpendPaise: offer.minSpendPaise,
     seatsLeft,
     status,

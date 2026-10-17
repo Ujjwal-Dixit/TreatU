@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { OffersModule } from './offers/offers.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { ClaimsModule } from './claims/claims.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ClaimsModule } from './claims/claims.module';
     // (see AuthController) since it's the actual abuse-prone endpoint.
     ThrottlerModule.forRoot({ throttlers: [{ ttl: 60_000, limit: 60 }] }),
     PrismaModule,
+    RealtimeModule,
     AuthModule,
     UsersModule,
     OffersModule,

@@ -167,6 +167,13 @@ model Offer {
   endTime            String      @map("end_time")
   minSpendPaise      Int?        @map("min_spend_paise")
   capacityPerDay     Int         @map("capacity_per_day")
+  /// Optional short copy shown to customers on the offer card (max 100).
+  description        String      @default("")
+  /// Restaurant-local calendar bounds, inclusive. Both null = runs on
+  /// daysOfWeek indefinitely (a standing weekly rule). The partner app's
+  /// "Today Only" sets both to the same date; "Date Range" sets each.
+  validFrom          DateTime?   @db.Date @map("valid_from")
+  validUntil         DateTime?   @db.Date @map("valid_until")
   status             OfferStatus @default(active)
   createdAt          DateTime    @default(now()) @map("created_at")
   updatedAt          DateTime    @updatedAt @map("updated_at")
@@ -215,6 +222,11 @@ model Claim {
   status                       ClaimStatus @default(claimed)
   claimedAt                    DateTime    @default(now()) @map("claimed_at")
   redeemedAt                   DateTime?   @map("redeemed_at")
+  /// The actual bill, entered by staff at redemption (optional — staff may
+  /// skip it). Powers the customer's "Total saved"; without it savings fall
+  /// back to a min-spend estimate. Customers pay the restaurant directly, so
+  /// this is the only place a real bill amount ever reaches us.
+  billAmountPaise              Int?        @map("bill_amount_paise")
   expiresAt                    DateTime    @map("expires_at")
 
   @@index([userId, status])

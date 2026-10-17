@@ -32,17 +32,18 @@ export class UsersService {
       select: {
         discountPercentageSnapshot: true,
         minSpendPaiseSnapshot: true,
+        billAmountPaise: true,
         restaurantId: true,
       },
     });
 
-    // "Total saved" approximates the discount value against the minimum
-    // spend for that offer (or 0 if no minimum was set) — a real spend
-    // amount isn't captured anywhere in MVP (no payment integration), so
-    // this is a best-effort proxy, not an exact figure. Revisit once
-    // restaurants can report actual bill amounts.
+    // Real savings when staff entered the bill at redemption. Otherwise the
+    // minimum spend is used as a floor — the customer spent at least that
+    // much to qualify — so the figure is never overstated; claims with
+    // neither contribute 0. The more restaurants record bills, the closer
+    // this gets to exact.
     const totalSavedPaise = redeemedClaims.reduce((sum, claim) => {
-      const base = claim.minSpendPaiseSnapshot ?? 0;
+      const base = claim.billAmountPaise ?? claim.minSpendPaiseSnapshot ?? 0;
       return sum + Math.round((base * claim.discountPercentageSnapshot) / 100);
     }, 0);
 

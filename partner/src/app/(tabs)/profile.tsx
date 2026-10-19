@@ -36,7 +36,11 @@ export default function ProfileScreen() {
         ) : isError || !restaurant ? (
           <ErrorState message="Couldn't load your restaurant." onRetry={() => void refetch()} />
         ) : (
-          <Card style={styles.restaurantCard}>
+          <Pressable
+            onPress={() => router.push('/restaurant-details')}
+            accessibilityRole="button"
+            accessibilityLabel={`${restaurant.name}. Edit restaurant details.`}
+            style={({ pressed }) => [styles.restaurantCard, pressed && styles.rowPressed]}>
             <Image source={{ uri: restaurant.coverImageUrl }} style={styles.cover} contentFit="cover" />
             <View style={styles.restaurantText}>
               <AppText variant="heading">{restaurant.name}</AppText>
@@ -47,14 +51,15 @@ export default function ProfileScreen() {
                 {restaurant.addressLine}
               </AppText>
             </View>
-          </Card>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          </Pressable>
         )}
 
         <Card style={styles.menu}>
           <MenuRow icon="qr-code-outline" label="Redeem a customer code" onPress={() => router.push('/customers-today')} />
           <MenuRow icon="pricetags-outline" label="My offers" onPress={() => router.navigate('/offers')} />
-          <MenuRow icon="storefront-outline" label="Restaurant details" onPress={() => comingSoon('Restaurant details')} />
-          <MenuRow icon="time-outline" label="Opening hours" onPress={() => comingSoon('Opening hours')} />
+          <MenuRow icon="storefront-outline" label="Restaurant details" onPress={() => router.push('/restaurant-details')} />
+          <MenuRow icon="time-outline" label="Opening hours" onPress={() => router.push('/opening-hours')} />
           <MenuRow icon="headset-outline" label="Help & support" onPress={() => comingSoon('Help & support')} last />
         </Card>
 
@@ -96,7 +101,15 @@ function MenuRow({ icon, label, onPress, danger, last }: MenuRowProps) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
   content: { padding: ScreenPadding, gap: Spacing.four, paddingBottom: Spacing.six },
-  restaurantCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.four },
+  restaurantCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.four,
+    borderRadius: Radius.large,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: Spacing.four,
+  },
   cover: { width: 72, height: 72, borderRadius: Radius.medium, backgroundColor: Colors.surfaceMuted },
   restaurantText: { flex: 1, gap: Spacing.half },
   menu: { paddingVertical: 0 },

@@ -41,12 +41,13 @@ export function RealtimeSync() {
         invalidate([['dashboard'], ['claims'], ['offers'], ['offer']]);
       } else if (event.type === 'offers.changed') {
         // Public event for every restaurant in the city — only ours matters
-        // (e.g. an edit made from a second staff phone).
+        // (e.g. an edit made from a second staff phone). Also sent when the
+        // restaurant's own details or hours change.
         const ownId =
           queryClient.getQueryData<OwnerDashboardDto>(['dashboard'])?.restaurant.id ??
           queryClient.getQueryData<RestaurantDto>(['restaurant'])?.id;
         if (!ownId || data.restaurantId === ownId) {
-          invalidate([['dashboard'], ['offers'], ['offer']]);
+          invalidate([['dashboard'], ['offers'], ['offer'], ['restaurant']]);
         }
       }
     },

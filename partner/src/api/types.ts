@@ -71,12 +71,27 @@ export interface OwnerClaimDto {
   customer?: { name: string; phoneLast4: string };
 }
 
+/** One open day. A day missing from the array means closed that day. */
+export interface OperatingHoursEntry {
+  /** ISO weekday, 1 = Monday .. 7 = Sunday */
+  dayOfWeek: number;
+  /** "HH:mm", restaurant-local; closeTime is after openTime (no overnight) */
+  openTime: string;
+  closeTime: string;
+}
+
 export interface RestaurantDto {
   id: string;
   name: string;
   description: string;
   cuisines: string[];
+  priceTier: number;
   addressLine: string;
   coverImageUrl: string;
+  operatingHours: OperatingHoursEntry[];
   status: string;
 }
+
+export type RestaurantUpdateInput = Partial<
+  Pick<RestaurantDto, 'name' | 'description' | 'cuisines' | 'priceTier' | 'addressLine' | 'operatingHours'>
+>;

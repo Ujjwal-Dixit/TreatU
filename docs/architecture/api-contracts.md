@@ -225,7 +225,12 @@ URL alone for an owner-role token.
 
 ```
 GET   /restaurant-owner/restaurant
-PATCH /restaurant-owner/restaurant        body: profile/hours/gallery fields
+PATCH /restaurant-owner/restaurant        body: any of name, description (max 500), cuisines (1-6),
+                                          priceTier, addressLine, operatingHours
+  operatingHours replaces the whole week: one entry per open day, a missing
+  day = closed. 400 INVALID_OPERATING_HOURS for a repeated day or
+  closeTime <= openTime (overnight unsupported; "until midnight" = 23:59).
+  Publishes offers.changed so customer apps refetch the restaurant.
 
 GET   /restaurant-owner/dashboard
   200: { restaurant: { id, name, cuisines, coverImageUrl },
@@ -321,7 +326,7 @@ event costs one stale screen, never inconsistent data.
 
 | event | data | delivered to |
 |---|---|---|
-| `offers.changed` | `{ restaurantId }` | everyone (incl. logged out) — offer created/edited/paused/ended, or today's seat count moved |
+| `offers.changed` | `{ restaurantId }` | everyone (incl. logged out) — offer created/edited/paused/ended, today's seat count moved, or the restaurant's details/hours changed |
 | `claim.changed` | `{ claimId, restaurantId }` | the customer who owns the claim, and that restaurant's owner — claimed, cancelled, redeemed, expired |
 
 A `: ping` comment is sent every 25s to keep proxies from closing the

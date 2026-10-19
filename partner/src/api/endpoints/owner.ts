@@ -6,6 +6,7 @@ import type {
   OwnerDashboardDto,
   OwnerOfferDto,
   RestaurantDto,
+  RestaurantUpdateInput,
 } from '../types';
 
 const BASE = '/restaurant-owner';
@@ -16,6 +17,10 @@ export function getDashboard(): Promise<OwnerDashboardDto> {
 
 export function getRestaurant(): Promise<RestaurantDto> {
   return apiRequest(`${BASE}/restaurant`);
+}
+
+export function updateRestaurant(input: RestaurantUpdateInput): Promise<RestaurantDto> {
+  return apiRequest(`${BASE}/restaurant`, { method: 'PATCH', body: input });
 }
 
 export function listOffers(): Promise<OwnerOfferDto[]> {

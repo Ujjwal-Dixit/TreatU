@@ -44,6 +44,8 @@ function RootStack() {
       <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="customers-today" />
+        <Stack.Screen name="restaurant-details" />
+        <Stack.Screen name="opening-hours" />
       </Stack.Protected>
       </Stack>
     </>

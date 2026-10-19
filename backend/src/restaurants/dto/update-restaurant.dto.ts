@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsOptional,
   IsString,
@@ -17,11 +19,15 @@ export class UpdateRestaurantDto {
 
   @IsOptional()
   @IsString()
+  @Length(0, 500)
   description?: string;
 
   @IsOptional()
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(6)
   @IsString({ each: true })
+  @Length(1, 30, { each: true })
   cuisines?: string[];
 
   @IsOptional()
@@ -32,6 +38,7 @@ export class UpdateRestaurantDto {
 
   @IsOptional()
   @IsString()
+  @Length(1, 200)
   addressLine?: string;
 
   @IsOptional()
@@ -43,9 +50,10 @@ export class UpdateRestaurantDto {
   @IsUrl(undefined, { each: true })
   galleryUrls?: string[];
 
-  // Validated against operatingHoursSchema (zod) inside RestaurantsService
-  // rather than with class-validator decorators — a nested array-of-objects
-  // shape reads far more clearly as a zod schema than as decorator chains.
+  // Validated against editableOperatingHoursSchema (zod) inside
+  // RestaurantsService rather than with class-validator decorators — a
+  // nested array-of-objects shape reads far more clearly as a zod schema
+  // than as decorator chains.
   @IsOptional()
   operatingHours?: unknown;
 }

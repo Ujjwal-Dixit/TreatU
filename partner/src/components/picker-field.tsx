@@ -13,7 +13,8 @@ interface PickerFieldProps {
   /** Text shown in the field, e.g. "04:00 PM". */
   displayValue: string;
   onChange: (value: Date) => void;
-  icon: ComponentProps<typeof Ionicons>['name'];
+  /** Leading icon; omit in tight two-column rows so the value fits. */
+  icon?: ComponentProps<typeof Ionicons>['name'];
   minimumDate?: Date;
   accessibilityLabel: string;
 }
@@ -46,9 +47,11 @@ export function PickerField({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         style={({ pressed }) => [styles.field, pressed && styles.fieldPressed]}>
-        <View style={styles.iconBubble}>
-          <Ionicons name={icon} size={20} color={Colors.primaryText} />
-        </View>
+        {icon && (
+          <View style={styles.iconBubble}>
+            <Ionicons name={icon} size={20} color={Colors.primaryText} />
+          </View>
+        )}
         <AppText variant="body" style={styles.value} numberOfLines={1}>
           {displayValue}
         </AppText>

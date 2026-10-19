@@ -31,8 +31,10 @@ us at onboarding (see `backend/prisma/seed.ts`), there is no self-signup.
 
 ## Known gaps
 
-- "Continue with Google", "Sign up", notifications, the outlet switcher and
-  restaurant-details editing are placeholders that explain they're not built.
+- "Continue with Google", "Sign up", notifications and the outlet switcher
+  are placeholders that explain they're not built.
+- Restaurant Details can't change photos (no upload yet) or the map pin;
+  both still go through us. Opening hours can't run past midnight.
 - Re-running `npm run prisma:seed` deletes offers on the demo restaurants that
   the seed didn't create, unless they already have claims.
 - Shared code (HTTP client, token store) is copied from the customer app,

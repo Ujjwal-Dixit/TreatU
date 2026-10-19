@@ -1,9 +1,10 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import type { Prisma, Restaurant } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { AppException } from '../common/exceptions/app.exception';
 import { getLocalDateTimeParts } from '../common/time/timezone.util';
-import { operatingHoursSchema } from '../common/schemas/operating-hours.schema';
+import { editableOperatingHoursSchema } from '../common/schemas/operating-hours.schema';
 import { CATEGORIES, matchesCategory } from '../config/categories.config';
 import {
   HOME_FEED_SECTION_KEYS,
@@ -48,6 +49,7 @@ export class RestaurantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly offersService: OffersService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   async getHomeFeed(
@@ -237,11 +239,11 @@ export class RestaurantsService {
 
     let parsedOperatingHours: Prisma.InputJsonValue | undefined;
     if (operatingHours !== undefined) {
-      const parsed = operatingHoursSchema.safeParse(operatingHours);
+      const parsed = editableOperatingHoursSchema.safeParse(operatingHours);
       if (!parsed.success) {
         throw new AppException(
           'INVALID_OPERATING_HOURS',
-          'operatingHours is malformed.',
+          parsed.error.issues[0]?.message ?? 'operatingHours is malformed.',
           HttpStatus.BAD_REQUEST,
           {
             issues: parsed.error.issues,
@@ -251,7 +253,7 @@ export class RestaurantsService {
       parsedOperatingHours = parsed.data;
     }
 
-    return this.prisma.restaurant.update({
+    const updated = await this.prisma.restaurant.update({
       where: { id: restaurant.id },
       data: {
         ...rest,
@@ -260,6 +262,13 @@ export class RestaurantsService {
           : {}),
       },
     });
+    // offers.changed already makes customer apps refetch this restaurant's
+    // card and detail screen, which is exactly what a name/hours edit needs.
+    this.realtime.publish({
+      type: 'offers.changed',
+      restaurantId: restaurant.id,
+    });
+    return updated;
   }
 
   // --- shared helpers ---------------------------------------------------

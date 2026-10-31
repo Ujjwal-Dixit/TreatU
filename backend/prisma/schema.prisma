@@ -22,6 +22,9 @@ enum RestaurantStatus {
   active
   paused
   rejected
+  /// Taken down from the admin dashboard. A soft delete: past claims keep
+  /// pointing at the row, so customers' booking history still renders.
+  removed
 }
 
 enum OfferStatus {

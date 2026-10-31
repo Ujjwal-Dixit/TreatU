@@ -51,3 +51,24 @@ describe('validateEnv — test OTP numbers', () => {
     ).toThrow(/E\.164/);
   });
 });
+
+describe('validateEnv — admin numbers', () => {
+  it('parses a comma-separated list', () => {
+    expect(
+      validateEnv({
+        ...BASE,
+        ADMIN_PHONE_NUMBERS: '+919800000002, +919800000003',
+      }).ADMIN_PHONE_NUMBERS,
+    ).toEqual(['+919800000002', '+919800000003']);
+  });
+
+  it('defaults to none', () => {
+    expect(validateEnv(BASE).ADMIN_PHONE_NUMBERS).toEqual([]);
+  });
+
+  it('rejects a number without a country code', () => {
+    expect(() =>
+      validateEnv({ ...BASE, ADMIN_PHONE_NUMBERS: '9800000002' }),
+    ).toThrow(/ADMIN_PHONE_NUMBERS must be E.164/);
+  });
+});

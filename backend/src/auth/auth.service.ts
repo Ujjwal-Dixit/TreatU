@@ -35,13 +35,21 @@ export class AuthService {
   ): Promise<{ user: User; tokens: AuthTokens }> {
     await this.otpService.verifyOtp(phoneNumber, code);
 
+    // Admins are configured, not signed up: a listed number is promoted on
+    // login (including an existing customer/owner account for that number).
+    const isAdmin = this.config
+      .get('ADMIN_PHONE_NUMBERS', { infer: true })
+      .includes(phoneNumber);
     const user = await this.prisma.user.upsert({
       where: { phoneNumber },
-      update: { lastLoginAt: new Date() },
+      update: {
+        lastLoginAt: new Date(),
+        ...(isAdmin ? { role: 'admin' } : {}),
+      },
       create: {
         phoneNumber,
-        name: 'New User',
-        role: 'customer',
+        name: isAdmin ? 'Admin' : 'New User',
+        role: isAdmin ? 'admin' : 'customer',
         lastLoginAt: new Date(),
       },
     });

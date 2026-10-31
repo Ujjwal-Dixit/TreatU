@@ -1,8 +1,6 @@
 /**
- * Local dev sample data AND the template for real onboarding: MVP has no
- * admin UI/API (confirmed decision — hand-curated launch), so a restaurant
- * goes live by adding an entry to demo-data.ts and running this script
- * against the target database. Everything here is upserted on a
+ * Local dev sample data. Real restaurants are added from the admin
+ * dashboard (admin/), not here. Everything here is upserted on a
  * deterministic id, so re-running updates rows instead of duplicating them
  * — which also makes this the "reset the demo to a known state" command.
  *

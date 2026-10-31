@@ -113,6 +113,7 @@ Environment variables (see `.env.example`):
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | two different values from `openssl rand -base64 48` |
 | `OTP_TEST_NUMBERS` | `+919800000000,+919800000001` plus any tester numbers |
 | `OTP_TEST_CODE` | any 6 digits — share with testers |
+| `ADMIN_PHONE_NUMBERS` | numbers that log in to the admin dashboard (`admin/`); also add them to `OTP_TEST_NUMBERS` |
 | `TRUST_PROXY_HOPS` | `1` — the host's proxy; without it every tester shares one rate-limit bucket |
 
 `PORT` is provided by the host. Load the demo data once, from your machine,

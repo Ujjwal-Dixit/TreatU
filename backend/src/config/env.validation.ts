@@ -51,6 +51,28 @@ const baseEnvSchema = z.object({
     .string()
     .regex(/^\d{6}$/, 'OTP_TEST_CODE must be 6 digits')
     .optional(),
+  // Comma-separated E.164 numbers that sign in as `admin` (the admin
+  // dashboard). Applied on every login, so adding a number here and
+  // logging in is how an admin account is made — there's no signup for it.
+  ADMIN_PHONE_NUMBERS: z
+    .string()
+    .optional()
+    .transform((value) =>
+      (value ?? '')
+        .split(',')
+        .map((n) => n.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z.array(
+        z
+          .string()
+          .regex(
+            /^\+\d{8,15}$/,
+            'ADMIN_PHONE_NUMBERS must be E.164, e.g. +919800000002',
+          ),
+      ),
+    ),
   // How many reverse proxies sit in front of the app (Render/Railway: 1).
   // Needed so rate limits key on the real client IP — behind a proxy every
   // request otherwise shares the proxy's IP, and the 3/min OTP limit would

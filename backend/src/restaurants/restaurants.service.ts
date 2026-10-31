@@ -204,7 +204,7 @@ export class RestaurantsService {
     origin: Coordinates,
   ): Promise<RestaurantCardDto[]> {
     const favorites = await this.prisma.favorite.findMany({
-      where: { userId },
+      where: { userId, restaurant: { status: { not: 'removed' } } },
       include: { restaurant: true },
       orderBy: { createdAt: 'desc' },
     });

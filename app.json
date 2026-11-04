@@ -14,7 +14,7 @@
       }
     },
     "android": {
-      "package": "com.treatu.app",
+      "package": "com.treatu.customer",
       "adaptiveIcon": {
         "backgroundColor": "#D7582F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

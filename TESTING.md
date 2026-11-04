@@ -5,7 +5,7 @@ Two apps, one backend:
 | | Customer app | Partner app |
 |---|---|---|
 | Folder | repo root | `partner/` |
-| App ID (Android + iOS) | `com.treatu.app` | `com.treatu.partner` |
+| App ID | Android `com.treatu.customer`, iOS `com.treatu.app` | `com.treatu.partner` |
 | Demo login | +91 98000 00000 | +91 98000 00001 (owner of Mowgli Street Food) |
 
 Testers log in with the fixed OTP the test backend is configured with
